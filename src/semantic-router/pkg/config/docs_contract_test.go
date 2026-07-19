@@ -605,6 +605,25 @@ var retiredCurrentTranslationOverrides = []string{
 	repoRel("website", "i18n", "zh-Hans", "docusaurus-plugin-content-docs", "current", "troubleshooting", "common-errors.md"),
 }
 
+// The hosted playground has no self-service sign-up, and no demo account is provisioned from this
+// repo: EnsureBootstrapAdmin (dashboard/backend/auth/service.go:220) is driven only by
+// DASHBOARD_ADMIN_*, which lives in the deployment. Publishing credentials for it strands readers on
+// a 401 (issue #2572). Keep the README free of them.
+var hostedPlaygroundCredentialForbiddenDocs = []docNeedles{
+	{
+		path: "README.md",
+		needles: []string{
+			"love@vllm-sr.ai",
+			"Online playground credentials",
+			"Password: `vllm-sr`",
+		},
+	},
+}
+
+func TestRootReadmeDoesNotPublishHostedPlaygroundCredentials(t *testing.T) {
+	assertDocsDoNotContainAny(t, repoRootFromTestFile(t), hostedPlaygroundCredentialForbiddenDocs)
+}
+
 func TestConfigContractDocsStayAligned(t *testing.T) {
 	assertDocsContainAll(t, repoRootFromTestFile(t), configContractRequiredDocs)
 }
