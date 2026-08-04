@@ -44,10 +44,11 @@ For platform notes, detailed setup options, and troubleshooting, see the **[Inst
 To evaluate the router — component performance regressions, routing quality across reasoning datasets, or backend comparisons — see the **[Benchmarking Guide](https://vllm-sr.ai/docs/benchmarking/overview)**.
 
 <details>
-<summary>Online playground credentials</summary>
+<summary>Trying the hosted Playground</summary>
 
-- Username: `love@vllm-sr.ai`
-- Password: `vllm-sr`
+The hosted [Playground](https://app.vllm-sr.ai/playground) requires an account, and self-registration is disabled, so it is not currently available for a public trial.
+
+To try vLLM Semantic Router now, install it with the command above and run `vllm-sr serve`. First-run setup mode prompts you to create your own dashboard admin account — no shared credentials needed.
 
 </details>
 
