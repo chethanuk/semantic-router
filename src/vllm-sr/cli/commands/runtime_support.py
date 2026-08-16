@@ -161,17 +161,29 @@ def append_passthrough_env_vars(
     env_vars: dict[str, str], config_path: Path | str | None = None
 ) -> None:
     """Pass selected host environment variables into the container runtime."""
+    discovered_names = config_env_references(config_path)
     # Static rules first so their masking wins; sorted for a stable log order.
-    discovered = ((name, True) for name in sorted(config_env_references(config_path)))
+    discovered = ((name, True) for name in sorted(discovered_names))
+    missing: set[str] = set()
     for name, masked in chain(PASSTHROUGH_ENV_RULES, discovered):
         if name in env_vars:
             continue
         value = os.environ.get(name)
         if value is None:
+            if name in discovered_names:
+                missing.add(name)
             continue
         env_vars[name] = value
         logged_value = "***" if masked else value
         log.info(f"Passing environment variable: {name}={logged_value}")
+
+    if missing:
+        log.warning(
+            "Config names these environment variables but they are not set in your shell, "
+            "so they will not reach the router container: %s. Export them before running "
+            "`vllm-sr serve`.",
+            ", ".join(sorted(missing)),
+        )
 
 
 def apply_container_runtime_override(runtime: str | None) -> None:

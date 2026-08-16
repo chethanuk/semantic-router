@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import sys
 from pathlib import Path
@@ -140,6 +141,63 @@ def test_append_passthrough_env_vars_forwards_keys_named_by_the_config(
     assert env_vars["GEMINI_API_KEY"] == "gk-test"
     assert env_vars["VALKEY_PASSWORD"] == "vp-test"
     assert "UNREFERENCED_API_KEY" not in env_vars
+
+
+def test_append_passthrough_env_vars_warns_when_a_config_named_key_is_unset(
+    monkeypatch, tmp_path, caplog
+):
+    """A config that names a credential the shell never exported must say so at startup."""
+    config = tmp_path / "config.yaml"
+    model = {
+        "name": "gemma",
+        "backend_refs": [{"name": "primary", "api_key_env": "GEMMA_OVH_KEY"}],
+    }
+    config.write_text(yaml.safe_dump({"providers": {"models": [model]}}))
+    monkeypatch.delenv("GEMMA_OVH_KEY", raising=False)
+
+    env_vars: dict[str, str] = {}
+    with caplog.at_level(logging.WARNING):
+        append_passthrough_env_vars(env_vars, config)
+
+    assert "GEMMA_OVH_KEY" not in env_vars
+    assert caplog.text.count("GEMMA_OVH_KEY") == 1
+
+
+def test_append_passthrough_env_vars_no_warning_when_set(monkeypatch, tmp_path, caplog):
+    config = tmp_path / "config.yaml"
+    model = {
+        "name": "gemma",
+        "backend_refs": [{"name": "primary", "api_key_env": "GEMMA_OVH_KEY"}],
+    }
+    config.write_text(yaml.safe_dump({"providers": {"models": [model]}}))
+    monkeypatch.setenv("GEMMA_OVH_KEY", "secret-canary")
+
+    env_vars: dict[str, str] = {}
+    with caplog.at_level(logging.WARNING):
+        append_passthrough_env_vars(env_vars, config)
+
+    assert env_vars["GEMMA_OVH_KEY"] == "secret-canary"
+    assert "secret-canary" not in caplog.text
+    assert "GEMMA_OVH_KEY" not in caplog.text
+
+
+def test_append_passthrough_env_vars_no_duplicate_warning_for_static_rule_key(
+    monkeypatch, tmp_path, caplog
+):
+    config = tmp_path / "config.yaml"
+    model = {
+        "name": "openai",
+        "backend_refs": [{"name": "primary", "api_key_env": "OPENAI_API_KEY"}],
+    }
+    config.write_text(yaml.safe_dump({"providers": {"models": [model]}}))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    env_vars: dict[str, str] = {}
+    with caplog.at_level(logging.WARNING):
+        append_passthrough_env_vars(env_vars, config)
+
+    assert "OPENAI_API_KEY" not in env_vars
+    assert caplog.text.count("OPENAI_API_KEY") == 1
 
 
 def test_config_env_references_reads_api_key_env_and_interpolations(tmp_path):

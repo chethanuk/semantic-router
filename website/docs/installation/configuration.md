@@ -108,6 +108,25 @@ providers:
           weight: 100
           api_key_env: OPENAI_API_KEY
 
+### Passing secrets
+
+Secrets and API keys reach backend containers safely when you follow these rules:
+
+1. **Export the variable in your shell:** The CLI forwards host environment variables into the container runtime. Export the secret before starting the service:
+   ```bash
+   export OPENROUTER_API_KEY="sk-or-v1-xxx"
+   vllm-sr serve --config config.yaml
+   ```
+2. **Reference the variable in config.yaml:** Name the environment variable in `api_key_env` under `backend_refs`, or use `${VAR_NAME}` syntax elsewhere in the config:
+   ```yaml
+   backend_refs:
+     - name: primary
+       endpoint: openrouter.ai/api/v1
+       api_key_env: OPENROUTER_API_KEY
+   ```
+3. **Use uppercase variable names:** Interpolation discovery only reads uppercase environment variable names (e.g. `${MY_KEY}`). Lowercase names like `${my_key}` are not forwarded as secrets.
+4. **Version requirement:** Arbitrary environment variable forwarding requires `vllm-sr` version `0.3.0.dev20260809115245` or higher (or installing from `main`). On release `0.3.0`, only statically defined keys (like `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`) are passed automatically.
+
 routing:
   strategy: priority
   modelCards:
